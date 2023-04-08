@@ -2,19 +2,35 @@ import React, { useState, useEffect } from "react";
 import { storage } from "./firebase";
 import { v4 } from "uuid";
 import { ref, uploadBytes, listAll, getDownloadURL } from "firebase/storage";
-import { Button, Box, Grid } from "@mui/material";
+import { Button, Box, Grid, Avatar } from "@mui/material";
 import IconButton from "@mui/material/IconButton";
 
 const DemoUploadImage = () => {
+  const [previewImage, setPreviewImage] = useState(null);
   const [imageUpload, setImageUpload] = useState(null);
   const [imageList, setImageList] = useState([]);
-
   const imageListRef = ref(storage, "images/");
+
+  //browser File
+  const handleBroserFile = (e) => {
+    const imageFile = e.target.files[0];
+    const imageUrl = URL.createObjectURL(imageFile);
+    setImageUpload(imageFile);
+    setPreviewImage(imageUrl);
+  };
+
+  //Button Upload File
   const uploadImage = () => {
     if (imageUpload == null) return;
     const imageRef = ref(storage, `images/${imageUpload.name + v4()}`);
-    uploadBytes(imageRef, imageUpload).then(() => {
-      alert("Image Upload Success");
+
+    //Upload file
+    uploadBytes(imageRef, imageUpload).then((snapshot) => {
+      console.log(snapshot);
+      //Show file to HTML
+      getDownloadURL(snapshot.ref).then((url) => {
+        setImageList((prev) => [...prev, url]);
+      });
     });
   };
 
@@ -23,7 +39,6 @@ const DemoUploadImage = () => {
       res.items.forEach((item) => {
         getDownloadURL(item).then((url) => {
           setImageList((prev) => [...prev, url]);
-          console.log(url);
         });
       });
     });
@@ -38,19 +53,24 @@ const DemoUploadImage = () => {
             accept="image/*"
             multiple
             type="file"
-            onChange={(e) => {
-              console.log(e.target.files[0]);
-              setImageUpload(e.target.files[0]);
-            }}
+            onChange={handleBroserFile}
           />
         </Button>
         <Button onClick={uploadImage}>Save</Button>
-        <Box>
-          {imageList.map((url, index) => (
-            <img src={url} alt={url} key={index} />
-          ))}
-        </Box>
+        <Avatar
+          src={previewImage}
+          sx={{ width: "50px", height: "50px" }}></Avatar>
       </Grid>
+      <Box>
+        {imageList.map((url, index) => (
+          <Avatar
+            src={url}
+            alt={url}
+            key={index}
+            sx={{ width: "50px", height: "50px", border: "1px solid" }}
+          />
+        ))}
+      </Box>
     </Box>
   );
 };
